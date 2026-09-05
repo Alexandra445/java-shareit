@@ -36,8 +36,13 @@ public class UserRepositoryImpl implements UserRepository {
         User existingUser = findById(user.getId());
 
         if (existingUser != null) {
-            existingUser.setName(user.getName());
-            existingUser.setEmail(user.getEmail());
+            if (user.getName() != null) {
+                existingUser.setName(user.getName());
+            }
+
+            if (user.getEmail() != null) {
+                existingUser.setEmail(user.getEmail());
+            }
         }
 
         return existingUser;

@@ -23,6 +23,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
+        if (userRepository.findAll().stream()
+                .anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail()))) {
+            throw new RuntimeException("Email уже используется");
+        }
+
         return userRepository.save(user);
     }
 
