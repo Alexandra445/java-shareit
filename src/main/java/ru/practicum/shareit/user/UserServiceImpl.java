@@ -23,6 +23,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new RuntimeException("Email обязателен");
+        }
+
         if (userRepository.findAll().stream()
                 .anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail()))) {
             throw new RuntimeException("Email уже используется");
@@ -33,6 +37,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(long userId, User user) {
+        User existingUser = userRepository.findById(userId);
+
+        if (existingUser == null) {
+            throw new RuntimeException("Пользователь не найден");
+        }
+
+        if (user.getEmail() != null) {
+            boolean emailAlreadyUsed = userRepository.findAll().stream()
+                    .anyMatch(existing ->
+                            existing.getEmail().equals(user.getEmail())
+                                    && existing.getId() != userId);
+
+            if (emailAlreadyUsed) {
+                throw new RuntimeException("Email уже используется");
+            }
+        }
+
         user.setId(userId);
         return userRepository.update(user);
     }

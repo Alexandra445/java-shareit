@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.UserRepository;
 
 import java.util.List;
 
@@ -12,9 +13,26 @@ import java.util.List;
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
-
+    private final UserRepository userRepository;
     @Override
     public ItemDto addNewItem(long userId, ItemDto itemDto) {
+
+        if (userRepository.findById(userId) == null) {
+            throw new RuntimeException("Пользователь не найден");
+        }
+
+        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
+            throw new RuntimeException("Название вещи обязательно");
+        }
+
+        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
+            throw new RuntimeException("Описание вещи обязательно");
+        }
+
+        if (itemDto.getAvailable() == null) {
+            throw new RuntimeException("Поле available обязательно");
+        }
+
         Item item = new Item();
 
         item.setName(itemDto.getName());
