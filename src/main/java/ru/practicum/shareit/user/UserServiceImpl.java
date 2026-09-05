@@ -1,7 +1,9 @@
 package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,13 +25,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(User user) {
-        if (user.getEmail() == null || user.getEmail().isBlank()) {
-            throw new RuntimeException("Email обязателен");
+        if (user.getEmail() == null || !user.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
         }
 
-        if (userRepository.findAll().stream()
-                .anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail()))) {
-            throw new RuntimeException("Email уже используется");
+        if (userRepository.findAll().stream().anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
         }
 
         return userRepository.save(user);
@@ -44,10 +45,7 @@ public class UserServiceImpl implements UserService {
         }
 
         if (user.getEmail() != null) {
-            boolean emailAlreadyUsed = userRepository.findAll().stream()
-                    .anyMatch(existing ->
-                            existing.getEmail().equals(user.getEmail())
-                                    && existing.getId() != userId);
+            boolean emailAlreadyUsed = userRepository.findAll().stream().anyMatch(existing -> existing.getEmail().equals(user.getEmail()) && existing.getId() != userId);
 
             if (emailAlreadyUsed) {
                 throw new RuntimeException("Email уже используется");

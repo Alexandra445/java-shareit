@@ -1,7 +1,9 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
@@ -19,19 +21,19 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto addNewItem(long userId, ItemDto itemDto) {
 
         if (userRepository.findById(userId) == null) {
-            throw new RuntimeException("Пользователь не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
 
         if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            throw new RuntimeException("Название вещи обязательно");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название вещи обязательно");
         }
 
         if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            throw new RuntimeException("Описание вещи обязательно");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Описание вещи обязательно");
         }
 
         if (itemDto.getAvailable() == null) {
-            throw new RuntimeException("Поле available обязательно");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Поле available обязательно");
         }
 
         Item item = new Item();
@@ -56,7 +58,7 @@ public class ItemServiceImpl implements ItemService {
         }
 
         if (existingItem.getOwnerId() != userId) {
-            throw new RuntimeException("Изменять вещь может только её владелец");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Изменять вещь может только её владелец");
         }
 
         if (itemDto.getName() != null) {
@@ -89,9 +91,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getItems(long userId) {
-        return itemRepository.findByOwnerId(userId).stream()
-                .map(ItemMapper::toItemDto)
-                .toList();
+        return itemRepository.findByOwnerId(userId).stream().map(ItemMapper::toItemDto).toList();
     }
 
     @Override
@@ -100,8 +100,6 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
 
-        return itemRepository.search(text).stream()
-                .map(ItemMapper::toItemDto)
-                .toList();
+        return itemRepository.search(text).stream().map(ItemMapper::toItemDto).toList();
     }
 }
