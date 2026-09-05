@@ -14,7 +14,7 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-    
+
     @Override
     public ItemDto addNewItem(long userId, ItemDto itemDto) {
 
