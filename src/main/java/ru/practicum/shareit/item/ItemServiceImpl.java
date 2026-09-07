@@ -54,7 +54,7 @@ public class ItemServiceImpl implements ItemService {
         Item existingItem = itemRepository.findById(itemId);
 
         if (existingItem == null) {
-            return null;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
 
         if (existingItem.getOwnerId() != userId) {
@@ -83,7 +83,7 @@ public class ItemServiceImpl implements ItemService {
         Item item = itemRepository.findById(itemId);
 
         if (item == null) {
-            return null;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Вещь не найдена");
         }
 
         return ItemMapper.toItemDto(item);

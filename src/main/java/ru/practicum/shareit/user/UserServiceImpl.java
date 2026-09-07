@@ -20,7 +20,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUserById(long userId) {
-        return userRepository.findById(userId);
+        User user = userRepository.findById(userId);
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
+        }
+
+        return user;
     }
 
     @Override
@@ -41,14 +47,17 @@ public class UserServiceImpl implements UserService {
         User existingUser = userRepository.findById(userId);
 
         if (existingUser == null) {
-            throw new RuntimeException("Пользователь не найден");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден");
         }
 
         if (user.getEmail() != null) {
-            boolean emailAlreadyUsed = userRepository.findAll().stream().anyMatch(existing -> existing.getEmail().equals(user.getEmail()) && existing.getId() != userId);
+            if (!user.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Некорректный email");
+            }
 
+            boolean emailAlreadyUsed = userRepository.findAll().stream().anyMatch(existing -> existing.getEmail().equals(user.getEmail()) && existing.getId() != userId);
             if (emailAlreadyUsed) {
-                throw new RuntimeException("Email уже используется");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email уже используется");
             }
         }
 
