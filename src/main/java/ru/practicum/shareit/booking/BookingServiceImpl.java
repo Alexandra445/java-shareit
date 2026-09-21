@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import ru.practicum.shareit.booking.dto.BookingDto;
+import ru.practicum.shareit.booking.dto.BookingResponseDto;
 import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
@@ -24,7 +26,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingDto createBooking(long userId, BookingDto bookingDto) {
+    public BookingResponseDto createBooking(
+            long userId,
+            BookingDto bookingDto) {
         User booker = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new ResponseStatusException(
@@ -89,7 +93,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingDto approveBooking(long ownerId, long bookingId, boolean approved) {
+    public BookingResponseDto approveBooking(
+            long ownerId,
+            long bookingId,
+            boolean approved) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() ->
                         new ResponseStatusException(
@@ -114,7 +121,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public BookingDto getBooking(long userId, long bookingId) {
+    public BookingResponseDto getBooking(
+            long userId,
+            long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() ->
                         new ResponseStatusException(
@@ -138,7 +147,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingDto> getUserBookings(long userId, BookingQueryState state) {
+    public List<BookingResponseDto> getUserBookings(
+            long userId,
+            BookingQueryState state) {
         checkUserExists(userId);
 
         List<Booking> bookings =
@@ -152,7 +163,9 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingDto> getOwnerBookings(long ownerId, BookingQueryState state) {
+    public List<BookingResponseDto> getOwnerBookings(
+            long ownerId,
+            BookingQueryState state) {
         checkUserExists(ownerId);
 
         List<Booking> bookings =
@@ -214,14 +227,19 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private BookingDto toDto(Booking booking) {
-        BookingDto dto = new BookingDto();
+    private BookingResponseDto toDto(Booking booking) {
+        BookingResponseDto dto = new BookingResponseDto();
 
         dto.setId(booking.getId());
         dto.setStart(booking.getStart());
         dto.setEnd(booking.getEnd());
-        dto.setItemId(booking.getItem().getId());
-        dto.setBookerId(booking.getBooker().getId());
+
+        ItemDto itemDto = new ItemDto();
+        itemDto.setId(booking.getItem().getId());
+        itemDto.setName(booking.getItem().getName());
+
+        dto.setItem(itemDto);
+        dto.setBooker(booking.getBooker());
         dto.setStatus(booking.getStatus());
 
         return dto;

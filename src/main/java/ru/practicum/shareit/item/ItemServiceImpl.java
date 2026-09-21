@@ -117,25 +117,6 @@ public class ItemServiceImpl implements ItemService {
 
         ItemDto dto = ItemMapper.toItemDto(item);
 
-        LocalDateTime now = LocalDateTime.now();
-
-        Booking lastBooking =
-                bookingRepository.findFirstByItemIdAndEndBeforeAndStatusOrderByEndDesc(
-                        itemId,
-                        now,
-                        BookingState.APPROVED
-                );
-
-        Booking nextBooking =
-                bookingRepository.findFirstByItemIdAndStartAfterAndStatusOrderByStartAsc(
-                        itemId,
-                        now,
-                        BookingState.APPROVED
-                );
-
-        dto.setLastBooking(toShortDto(lastBooking));
-        dto.setNextBooking(toShortDto(nextBooking));
-
         List<Comment> comments =
                 commentRepository.findByItemIdOrderByCreatedDesc(itemId);
 
