@@ -11,6 +11,7 @@ import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.UserDto;
 import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
@@ -70,13 +71,6 @@ public class BookingServiceImpl implements BookingService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Дата начала должна быть раньше даты окончания"
-            );
-        }
-
-        if (bookingDto.getStart().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Дата начала бронирования не может быть в прошлом"
             );
         }
 
@@ -239,7 +233,14 @@ public class BookingServiceImpl implements BookingService {
         itemDto.setName(booking.getItem().getName());
 
         dto.setItem(itemDto);
-        dto.setBooker(booking.getBooker());
+
+        UserDto bookerDto = new UserDto();
+        bookerDto.setId(booking.getBooker().getId());
+        bookerDto.setName(booking.getBooker().getName());
+        bookerDto.setEmail(booking.getBooker().getEmail());
+
+        dto.setBooker(bookerDto);
+
         dto.setStatus(booking.getStatus());
 
         return dto;
