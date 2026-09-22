@@ -17,6 +17,8 @@ import ru.practicum.shareit.user.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -133,30 +135,55 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemDto> getItems(long userId) {
         LocalDateTime now = LocalDateTime.now();
 
+        List<Booking> lastBookings =
+                bookingRepository.findByItemOwnerIdAndEndBeforeAndStatusOrderByEndDesc(
+                        userId,
+                        now,
+                        BookingState.APPROVED
+                );
+
+        List<Booking> nextBookings =
+                bookingRepository.findByItemOwnerIdAndStartAfterAndStatusOrderByStartAsc(
+                        userId,
+                        now,
+                        BookingState.APPROVED
+                );
+
+        Map<Long, Booking> lastBookingByItem = lastBookings.stream()
+                .collect(Collectors.toMap(
+                        booking -> booking.getItem().getId(),
+                        booking -> booking,
+                        (first, second) -> first
+                ));
+
+        Map<Long, Booking> nextBookingByItem = nextBookings.stream()
+                .collect(Collectors.toMap(
+                        booking -> booking.getItem().getId(),
+                        booking -> booking,
+                        (first, second) -> first
+                ));
+
+        List<Comment> allComments =
+                commentRepository.findByItemOwnerIdOrderByCreatedDesc(userId);
+
+        Map<Long, List<Comment>> commentsByItem = allComments.stream()
+                .collect(Collectors.groupingBy(
+                        comment -> comment.getItem().getId()
+                ));
+
         return itemRepository.findByOwnerId(userId)
                 .stream()
                 .map(item -> {
                     ItemDto dto = ItemMapper.toItemDto(item);
 
-                    Booking lastBooking =
-                            bookingRepository.findFirstByItemIdAndEndBeforeAndStatusOrderByEndDesc(
-                                    item.getId(),
-                                    now,
-                                    BookingState.APPROVED
-                            );
-
-                    Booking nextBooking =
-                            bookingRepository.findFirstByItemIdAndStartAfterAndStatusOrderByStartAsc(
-                                    item.getId(),
-                                    now,
-                                    BookingState.APPROVED
-                            );
+                    Booking lastBooking = lastBookingByItem.get(item.getId());
+                    Booking nextBooking = nextBookingByItem.get(item.getId());
 
                     dto.setLastBooking(toShortDto(lastBooking));
                     dto.setNextBooking(toShortDto(nextBooking));
 
                     List<Comment> comments =
-                            commentRepository.findByItemIdOrderByCreatedDesc(item.getId());
+                            commentsByItem.getOrDefault(item.getId(), List.of());
 
                     dto.setComments(
                             comments.stream()
@@ -176,12 +203,11 @@ public class ItemServiceImpl implements ItemService {
         }
 
         return itemRepository
-                .findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
+                .findByAvailableTrueAndNameContainingIgnoreCaseOrAvailableTrueAndDescriptionContainingIgnoreCase(
                         text,
                         text
                 )
                 .stream()
-                .filter(Item::getAvailable)
                 .map(ItemMapper::toItemDto)
                 .toList();
     }

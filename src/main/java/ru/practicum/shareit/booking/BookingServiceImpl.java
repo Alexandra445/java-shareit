@@ -74,6 +74,13 @@ public class BookingServiceImpl implements BookingService {
             );
         }
 
+        if (bookingDto.getStart().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Дата начала бронирования не может быть в прошлом"
+            );
+        }
+
         Booking booking = new Booking();
 
         booking.setStart(bookingDto.getStart());
@@ -146,11 +153,44 @@ public class BookingServiceImpl implements BookingService {
             BookingQueryState state) {
         checkUserExists(userId);
 
-        List<Booking> bookings =
-                bookingRepository.findByBookerIdOrderByStartDesc(userId);
+        LocalDateTime now = LocalDateTime.now();
 
-        return filterByState(bookings, state)
-                .stream()
+        List<Booking> bookings;
+
+        if (state == null || state == BookingQueryState.ALL) {
+            bookings = bookingRepository.findByBookerIdOrderByStartDesc(userId);
+        } else {
+            bookings = switch (state) {
+                case CURRENT ->
+                        bookingRepository
+                                .findByBookerIdAndStartLessThanEqualAndEndAfterOrderByStartDesc(
+                                        userId, now, now);
+
+                case PAST ->
+                        bookingRepository
+                                .findByBookerIdAndEndLessThanEqualOrderByStartDesc(
+                                        userId, now);
+
+                case FUTURE ->
+                        bookingRepository
+                                .findByBookerIdAndStartAfterOrderByStartDesc(
+                                        userId, now);
+
+                case WAITING ->
+                        bookingRepository
+                                .findByBookerIdAndStatusOrderByStartDesc(
+                                        userId, BookingState.WAITING);
+
+                case REJECTED ->
+                        bookingRepository
+                                .findByBookerIdAndStatusOrderByStartDesc(
+                                        userId, BookingState.REJECTED);
+
+                case ALL -> bookingRepository.findByBookerIdOrderByStartDesc(userId);
+            };
+        }
+
+        return bookings.stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -162,54 +202,47 @@ public class BookingServiceImpl implements BookingService {
             BookingQueryState state) {
         checkUserExists(ownerId);
 
-        List<Booking> bookings =
-                bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId);
-
-        return filterByState(bookings, state)
-                .stream()
-                .map(this::toDto)
-                .toList();
-    }
-
-    private List<Booking> filterByState(
-            List<Booking> bookings,
-            BookingQueryState state) {
-
-        if (state == null || state == BookingQueryState.ALL) {
-            return bookings;
-        }
-
         LocalDateTime now = LocalDateTime.now();
 
-        return switch (state) {
-            case CURRENT -> bookings.stream()
-                    .filter(booking ->
-                            !booking.getStart().isAfter(now)
-                                    && booking.getEnd().isAfter(now))
-                    .toList();
+        List<Booking> bookings;
 
-            case PAST -> bookings.stream()
-                    .filter(booking ->
-                            !booking.getEnd().isAfter(now))
-                    .toList();
+        if (state == null || state == BookingQueryState.ALL) {
+            bookings = bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId);
+        } else {
+            bookings = switch (state) {
+                case CURRENT ->
+                        bookingRepository
+                                .findByItemOwnerIdAndStartLessThanEqualAndEndAfterOrderByStartDesc(
+                                        ownerId, now, now);
 
-            case FUTURE -> bookings.stream()
-                    .filter(booking ->
-                            booking.getStart().isAfter(now))
-                    .toList();
+                case PAST ->
+                        bookingRepository
+                                .findByItemOwnerIdAndEndLessThanEqualOrderByStartDesc(
+                                        ownerId, now);
 
-            case WAITING -> bookings.stream()
-                    .filter(booking ->
-                            booking.getStatus() == BookingState.WAITING)
-                    .toList();
+                case FUTURE ->
+                        bookingRepository
+                                .findByItemOwnerIdAndStartAfterOrderByStartDesc(
+                                        ownerId, now);
 
-            case REJECTED -> bookings.stream()
-                    .filter(booking ->
-                            booking.getStatus() == BookingState.REJECTED)
-                    .toList();
+                case WAITING ->
+                        bookingRepository
+                                .findByItemOwnerIdAndStatusOrderByStartDesc(
+                                        ownerId, BookingState.WAITING);
 
-            case ALL -> bookings;
-        };
+                case REJECTED ->
+                        bookingRepository
+                                .findByItemOwnerIdAndStatusOrderByStartDesc(
+                                        ownerId, BookingState.REJECTED);
+
+                case ALL ->
+                        bookingRepository.findByItemOwnerIdOrderByStartDesc(ownerId);
+            };
+        }
+
+        return bookings.stream()
+                .map(this::toDto)
+                .toList();
     }
 
     private void checkUserExists(long userId) {
