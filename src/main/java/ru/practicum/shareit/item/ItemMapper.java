@@ -12,7 +12,7 @@ public class ItemMapper {
         dto.setName(item.getName());
         dto.setDescription(item.getDescription());
         dto.setAvailable(item.getAvailable());
-        dto.setOwnerId(item.getOwnerId());
+        dto.setOwnerId(item.getOwner().getId());
         dto.setRequestId(item.getRequestId());
 
         return dto;
