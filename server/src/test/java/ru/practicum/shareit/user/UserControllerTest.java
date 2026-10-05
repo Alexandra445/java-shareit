@@ -34,12 +34,7 @@ class UserControllerTest {
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Александра",
-                                  "email": "alexandra@test.ru"
-                                }
-                                """))
+                        .content("{\"name\":\"Новое имя\",\"email\":\"new@test.ru\"}"))
                 .andExpect(status().isOk());
 
         verify(userService).createUser(org.mockito.ArgumentMatchers.any(User.class));
@@ -88,12 +83,7 @@ class UserControllerTest {
 
         mockMvc.perform(patch("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Новое имя",
-                                  "email": "new@test.ru"
-                                }
-                                """))
+                        .content("{\"name\":\"Александра\",\"email\":\"alexandra@test.ru\"}"))
                 .andExpect(status().isOk());
 
         verify(userService).updateUser(
