@@ -258,7 +258,7 @@ public class ItemServiceImpl implements ItemService {
                         userId,
                         LocalDateTime.now()
                 );
-        
+
         if (!rented) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
