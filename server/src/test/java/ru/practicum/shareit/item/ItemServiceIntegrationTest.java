@@ -5,7 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import ru.practicum.shareit.booking.Booking;
 import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.BookingState;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.ItemRequest;
@@ -13,7 +16,10 @@ import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
 
+import java.time.LocalDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -38,6 +44,8 @@ class ItemServiceIntegrationTest {
     private CommentRepository commentRepository;
 
     private User owner;
+    private User booker;
+    private Item item;
 
     @BeforeEach
     void setUp() {
@@ -51,6 +59,18 @@ class ItemServiceIntegrationTest {
         owner.setName("Владелец");
         owner.setEmail("owner." + System.nanoTime() + "@test.ru");
         owner = userRepository.save(owner);
+
+        booker = new User();
+        booker.setName("Букер");
+        booker.setEmail("booker." + System.nanoTime() + "@test.ru");
+        booker = userRepository.save(booker);
+
+        item = new Item();
+        item.setName("Дрель");
+        item.setDescription("Описание");
+        item.setAvailable(true);
+        item.setOwner(owner);
+        item = itemRepository.save(item);
     }
 
     @Test
@@ -124,7 +144,7 @@ class ItemServiceIntegrationTest {
         itemRepository.save(second);
 
         assertThat(itemService.getItems(owner.getId()))
-                .hasSize(2);
+                .hasSize(3);
     }
 
     @Test
@@ -166,5 +186,129 @@ class ItemServiceIntegrationTest {
 
         assertThat(savedItem.getRequestId())
                 .isEqualTo(savedRequest.getId());
+    }
+
+    @Test
+    void addNewItem_shouldFailForMissingUser() {
+        ItemDto dto = new ItemDto();
+        dto.setName("Дрель");
+        dto.setDescription("Описание");
+        dto.setAvailable(true);
+
+        assertThatThrownBy(() ->
+                itemService.addNewItem(999999L, dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void addNewItem_shouldFailForMissingName() {
+        ItemDto dto = new ItemDto();
+        dto.setDescription("Описание");
+        dto.setAvailable(true);
+
+        assertThatThrownBy(() ->
+                itemService.addNewItem(owner.getId(), dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void addNewItem_shouldFailForMissingDescription() {
+        ItemDto dto = new ItemDto();
+        dto.setName("Дрель");
+        dto.setAvailable(true);
+
+        assertThatThrownBy(() ->
+                itemService.addNewItem(owner.getId(), dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void addNewItem_shouldFailForMissingAvailable() {
+        ItemDto dto = new ItemDto();
+        dto.setName("Дрель");
+        dto.setDescription("Описание");
+
+        assertThatThrownBy(() ->
+                itemService.addNewItem(owner.getId(), dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void updateItem_shouldFailForAnotherUser() {
+        User anotherUser = new User();
+        anotherUser.setName("Другой");
+        anotherUser.setEmail("another." + System.nanoTime() + "@test.ru");
+        anotherUser = userRepository.save(anotherUser);
+
+        Long anotherUserId = anotherUser.getId();
+
+        ItemDto dto = new ItemDto();
+        dto.setName("Новое название");
+
+        assertThatThrownBy(() ->
+                itemService.updateItem(anotherUserId, item.getId(), dto))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void updateItem_shouldUpdateAllFields() {
+        ItemDto dto = new ItemDto();
+        dto.setName("Новое название");
+        dto.setDescription("Новое описание");
+        dto.setAvailable(false);
+
+        ItemDto result =
+                itemService.updateItem(owner.getId(), item.getId(), dto);
+
+        assertThat(result.getName()).isEqualTo("Новое название");
+        assertThat(result.getDescription()).isEqualTo("Новое описание");
+        assertThat(result.getAvailable()).isFalse();
+    }
+
+    @Test
+    void getItem_shouldFailForMissingItem() {
+        assertThatThrownBy(() ->
+                itemService.getItem(999999L))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void searchItems_shouldReturnEmptyForBlankText() {
+        assertThat(itemService.searchItems("   ")).isEmpty();
+    }
+
+    @Test
+    void addComment_shouldFailForBlankText() {
+        assertThatThrownBy(() ->
+                itemService.addComment(booker.getId(), item.getId(), "   "))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void addComment_shouldFailIfNotRented() {
+        assertThatThrownBy(() ->
+                itemService.addComment(booker.getId(), item.getId(), "Комментарий"))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void addComment_shouldCreateAfterApprovedBooking() {
+        Booking booking = new Booking();
+        booking.setItem(item);
+        booking.setBooker(booker);
+        booking.setStart(LocalDateTime.now().minusHours(4));
+        booking.setEnd(LocalDateTime.now().minusHours(2));
+        booking.setStatus(BookingState.APPROVED);
+
+        bookingRepository.save(booking);
+
+        CommentDto result =
+                itemService.addComment(
+                        booker.getId(),
+                        item.getId(),
+                        "Хороший инструмент"
+                );
+
+        assertThat(result.getText()).isEqualTo("Хороший инструмент");
     }
 }

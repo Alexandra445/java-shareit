@@ -122,4 +122,5 @@ class UserServiceIntegrationTest {
         assertThatThrownBy(() -> userService.getUserById(999999L))
                 .isInstanceOf(Exception.class);
     }
+
 }

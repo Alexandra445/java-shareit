@@ -8,14 +8,24 @@ import org.springframework.test.context.ActiveProfiles;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequest;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class ItemRequestServiceIntegrationTest {
+
+    @Autowired
+    private ItemRequestRepository itemRequestRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
 
     @Autowired
     private ItemRequestService itemRequestService;
@@ -97,5 +107,52 @@ class ItemRequestServiceIntegrationTest {
         assertThat(result.getId()).isEqualTo(created.getId());
         assertThat(result.getDescription())
                 .isEqualTo("Нужен штатив");
+    }
+
+    @Test
+    void getUserRequests_shouldFailForMissingUser() {
+        assertThatThrownBy(() ->
+                itemRequestService.getUserRequests(999999L))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void getAllRequests_shouldFailForMissingUser() {
+        assertThatThrownBy(() ->
+                itemRequestService.getAllRequests(999999L))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void getRequest_shouldFailForMissingRequest() {
+        assertThatThrownBy(() ->
+                itemRequestService.getRequest(999999L))
+                .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void getRequest_shouldReturnItems() {
+        ItemRequest request = new ItemRequest();
+        request.setDescription("Нужна дрель");
+        request.setCreated(java.time.LocalDateTime.now());
+        request.setRequester(user);
+        request = itemRequestRepository.save(request);
+
+        Item item = new Item();
+        item.setName("Дрель");
+        item.setDescription("Описание");
+        item.setAvailable(true);
+        item.setOwner(anotherUser);
+        item.setRequestId(request.getId());
+        itemRepository.save(item);
+
+        ItemRequestDto result =
+                itemRequestService.getRequest(request.getId());
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getName())
+                .isEqualTo("Дрель");
+        assertThat(result.getItems().get(0).getOwnerId())
+                .isEqualTo(anotherUser.getId());
     }
 }
