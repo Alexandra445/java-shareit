@@ -253,13 +253,12 @@ public class ItemServiceImpl implements ItemService {
         }
 
         boolean rented = bookingRepository
-                .existsByItemIdAndBookerIdAndEndBeforeAndStatus(
+                .existsByItemIdAndBookerIdAndEndBefore(
                         itemId,
                         userId,
-                        LocalDateTime.now(),
-                        BookingState.APPROVED
+                        LocalDateTime.now()
                 );
-
+        
         if (!rented) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
