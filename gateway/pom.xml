@@ -40,4 +40,18 @@
 
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <output>file</output>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+
 </project>
