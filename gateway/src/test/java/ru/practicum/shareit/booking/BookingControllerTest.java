@@ -36,8 +36,8 @@ class BookingControllerTest {
     void createBooking_shouldReturnBooking() throws Exception {
         BookingDto input = new BookingDto();
         input.setItemId(1L);
-        input.setStart(LocalDateTime.of(2026, 10, 6, 10, 0));
-        input.setEnd(LocalDateTime.of(2026, 10, 6, 12, 0));
+        input.setStart(LocalDateTime.now().plusDays(1));
+        input.setEnd(LocalDateTime.now().plusDays(2));
 
         BookingResponseDto result = new BookingResponseDto();
         result.setId(1L);

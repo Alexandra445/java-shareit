@@ -14,6 +14,8 @@ import ru.practicum.shareit.user.UserService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +34,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         request.setCreated(LocalDateTime.now());
         request.setRequester(requester);
 
-        return toDto(itemRequestRepository.save(request));
+        return toDto(itemRequestRepository.save(request), List.of());
     }
 
     @Override
@@ -40,11 +42,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestDto> getUserRequests(long userId) {
         userService.getUserById(userId);
 
-        return itemRequestRepository
-                .findByRequesterIdOrderByCreatedDesc(userId)
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return toDtos(itemRequestRepository
+                .findByRequesterIdNotOrderByCreatedDesc(userId));
     }
 
     @Override
@@ -52,11 +51,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     public List<ItemRequestDto> getAllRequests(long userId) {
         userService.getUserById(userId);
 
-        return itemRequestRepository
-                .findByRequesterIdNotOrderByCreatedDesc(userId)
-                .stream()
-                .map(this::toDto)
-                .toList();
+        return toDtos(itemRequestRepository
+                .findByRequesterIdNotOrderByCreatedDesc(userId));
     }
 
     @Override
@@ -68,23 +64,33 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                         "Запрос не найден"
                 ));
 
-        return toDto(request);
+        return toDto(request, itemRepository.findByRequestId(requestId));
     }
 
-    private ItemRequestDto toDto(ItemRequest request) {
+    private List<ItemRequestDto> toDtos(List<ItemRequest> requests) {
+        if (requests.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = requests.stream().map(ItemRequest::getId).toList();
+
+        Map<Long, List<Item>> itemsByRequest = itemRepository
+                .findByRequestIdIn(ids)
+                .stream()
+                .collect(Collectors.groupingBy(Item::getRequestId));
+
+        return requests.stream()
+                .map(r -> toDto(r, itemsByRequest.getOrDefault(r.getId(), List.of())))
+                .toList();
+    }
+
+    private ItemRequestDto toDto(ItemRequest request, List<Item> items) {
         ItemRequestDto dto = new ItemRequestDto();
 
         dto.setId(request.getId());
         dto.setDescription(request.getDescription());
         dto.setCreated(request.getCreated());
-
-        List<ItemRequestItemDto> items = itemRepository
-                .findByRequestId(request.getId())
-                .stream()
-                .map(this::toItemRequestItemDto)
-                .toList();
-
-        dto.setItems(items);
+        dto.setItems(items.stream().map(this::toItemRequestItemDto).toList());
 
         return dto;
     }

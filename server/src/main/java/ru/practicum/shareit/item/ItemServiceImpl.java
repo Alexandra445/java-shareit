@@ -253,10 +253,11 @@ public class ItemServiceImpl implements ItemService {
         }
 
         boolean rented = bookingRepository
-                .existsByItemIdAndBookerIdAndEndBefore(
+                .existsByItemIdAndBookerIdAndEndBeforeAndStatus(
                         itemId,
                         userId,
-                        LocalDateTime.now()
+                        LocalDateTime.now(),
+                        BookingState.APPROVED
                 );
 
         if (!rented) {
