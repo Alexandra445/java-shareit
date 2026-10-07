@@ -43,7 +43,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         userService.getUserById(userId);
 
         return toDtos(itemRequestRepository
-                .findByRequesterIdNotOrderByCreatedDesc(userId));
+                .findByRequesterIdOrderByCreatedDesc(userId));
     }
 
     @Override
